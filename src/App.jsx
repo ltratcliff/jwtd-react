@@ -6,13 +6,76 @@ function App() {
   const [jwt, setJwt] = useState('');
   const [jwtHeader, setJwtHeader] = useState('');
   const [jwtPayload, setJwtPayload] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    function base64UrlDecode(str) {
+        const padding = "=".repeat((4 - (str.length % 4)) % 4); // Add padding
+        const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+        return atob(base64 + padding);
+    }
+
 
     const handleJwtChange = (e) => {
         const input = e.target.value;
         setJwt(input);
-        setJwtHeader(jwt + ' header');
-        setJwtPayload(jwt + ' payload');
+
+        if (!input) {
+            setJwtHeader('');
+            setJwtPayload('');
+            setErrorMessage('');
+            return;
+        }
+
+        try {
+            const parts = input.split('.'); // Split the JWT into its 3 parts
+            if (parts.length !== 3) {
+                setErrorMessage('Invalid JWT! Please verify the three parts are present and separated by a "."');
+                setJwtHeader(errorMessage);
+                setJwtPayload(errorMessage);
+                return;
+            }
+
+            try {
+                var decodedHeader = base64UrlDecode(parts[0]);
+            } catch (error) {
+                setErrorMessage('Base64 decoding failed: ' + error.message);
+                setJwtHeader(errorMessage);
+                return;
+            }
+            try {
+                const header = JSON.parse(decodedHeader);
+                setJwtHeader(JSON.stringify(header, null, 2));
+            } catch (error) {
+                setErrorMessage('JSON decoding failed: ' + error.message);
+                setJwtHeader(errorMessage);
+            }
+
+            try {
+                var decodedPayload = base64UrlDecode(parts[1]);
+            } catch (error) {
+                setErrorMessage('Base64 decoding failed: ' + error.message);
+                setJwtPayload(errorMessage);
+                return;
+            }
+            try {
+                const payload = JSON.parse(decodedPayload);
+                setJwtPayload(JSON.stringify(payload, null, 2));
+            } catch (error) {
+                setErrorMessage('Failed to parse JWT payload: ' + error.message);
+                setJwtPayload(errorMessage);
+            }
+
+            setErrorMessage(''); // Clear error message if parsing is successful
+
+        } catch (error) {
+            console.error('Failed to parse JWT:', error);
+            setJwtHeader(errorMessage || 'Invalid JWT! Please verify the format and try again.');
+            setJwtPayload(errorMessage || 'Invalid JWT! Please verify the format and try again.');
+            setErrorMessage('Invalid JWT! Please verify the format and try again.');
+        }
     };
+
+
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -28,30 +91,27 @@ function App() {
               SIF JWT Decoder
           </h1>
 
-          <div className="flex h-screen p-2 bg-gray-100">
-              <div className="flex-1 flex items-center justify-center bg-white shadow-lg rounded-lg p-6">
-                  <input
-                      type="text"
+          <div className="flex flex-wrap text-wrap h-screen p-2 bg-gray-100">
+              <div className="flex-1 flex items-center justify-center bg-white shadow-lg rounded-lg p-6 min-w-[300px]">
+                  <textarea
                       placeholder="Paste Encoded JWT..."
-                      className="w-full h-9/10 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-200 text-lg text-center"
+                      className="w-full h-19/20 p-4 border resize-none pt-[240px] border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-200 text-lg text-center"
                       value={jwt} onChange={handleJwtChange}
                   />
               </div>
 
               <div className="flex flex-col flex-1 ml-6 space-y-6">
                   <div className="flex items-center justify-center bg-white shadow-lg rounded-lg p-6 h-1/4">
-                      <input
-                          type="text"
+                      <textarea
                           placeholder="JWT Header"
-                          className="w-full h-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-green-200 text-lg text-center"
+                          className="w-full h-full p-4 border resize-none border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-green-200 text-lg pt-2"
                           value={jwtHeader}
                       />
                   </div>
-                  <div className="relative flex items-center justify-center bg-white shadow-lg rounded-lg p-6 h-3/4">
-                      <input
-                          type="text"
+                  <div className="relative flex text-wrap items-center justify-center bg-white shadow-lg rounded-lg p-6 h-3/4">
+                      <textarea
                           placeholder="JWT Payload"
-                          className="w-full h-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-red-200 text-lg text-center"
+                          className="w-full h-full p-4 border resize-none border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-red-200 text-lg pt-4"
                           value={jwtPayload}
                       />
                       <button data-copy-to-clipboard-target="npm-install-copy-button"
